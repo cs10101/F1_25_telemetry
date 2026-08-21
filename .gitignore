@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment / secrets
+.env
+*.env
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+
+# Recorded telemetry
+telemetry_sessions/
+*.csv
+
+# Logs
+*.log
