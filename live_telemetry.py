@@ -2,6 +2,7 @@ import socket
 import struct
 
 from telemetry.state import TelemetryState
+from telemetry.recorder import SessionRecorder
 
 UDP_IP = "0.0.0.0"
 UDP_PORT = 20777
@@ -28,6 +29,7 @@ latest_lap = {}
 latest_car = {}
 latest_status = {}
 state = TelemetryState()
+recorder = SessionRecorder()
 
 
 def format_ms(ms):
@@ -149,6 +151,9 @@ def update_dashboard_from_packet(data):
         state.world_x = world_x
         state.world_y = world_y
         state.world_z = world_z
+
+        # Record one snapshot per Motion packet
+        recorder.record(state)
 
         return True
 
@@ -286,10 +291,14 @@ def main():
 
         print("Listening for live F1 25 telemetry...")
 
+        recorder.start()
+
         try:
             while True:
                 data, _ = sock.recvfrom(4096)
                 update_dashboard_from_packet(data)
+
+                #recorder.record(state)
 
                 if state.world_x is not None:
                     print(
@@ -299,6 +308,7 @@ def main():
                         f"Z: {state.world_z:.2f}"
                     )
         except KeyboardInterrupt:
+            recorder.stop()
             print("\nTelemetry listener stopped.")
 
 
