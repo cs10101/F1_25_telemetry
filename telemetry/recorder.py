@@ -16,6 +16,9 @@ class SessionRecorder:
         self.file = None
         self.writer = None
 
+        self.initial_lap = None
+        self.recording_started = False
+
     def start(self):
         self.file = open(self.file_path, "w", newline="")
 
@@ -50,9 +53,27 @@ class SessionRecorder:
         if self.writer is None:
             return
 
-        # Don't record until motion data exists
-        if state.world_x is None:
+        if state.world_x is None or state.lap is None:
             return
+
+        # Remember which lap we were on when telemetry started.
+        if self.initial_lap is None:
+            self.initial_lap = state.lap
+            print(
+                f"Waiting for start/finish line "
+                f"(currently lap {self.initial_lap})..."
+            )
+            return
+
+        # Ignore everything until the lap number changes.
+        if not self.recording_started:
+            if state.lap == self.initial_lap:
+                return
+
+            self.recording_started = True
+            print(
+                f"Start/finish crossed - recording from lap {state.lap}!"
+            )
 
         self.writer.writerow({
             "timestamp": datetime.now().isoformat(),

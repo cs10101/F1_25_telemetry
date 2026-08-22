@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-CSV_FILE = "/home/christopher/f1-telemetry/data/sessions/session_2026-08-22_18-58-52.csv"
+CSV_FILE = "/home/christopher/f1-telemetry/data/sessions/session_2026-08-22_20-15-18.csv"
 
 df = pd.read_csv(CSV_FILE)
 
@@ -40,14 +40,14 @@ plt.axis("equal")
 plt.grid(True)
 
 plt.savefig(
-    "analysis/track_2d_fast.png",
+    "analysis/track_2d_center_line.png",
     dpi=200,
     bbox_inches="tight"
 )
 
 plt.close()
 
-print("Saved 2D track plot to analysis/track_2d.png")
+print("Saved 2D track plot to analysis/track_2d_fast.png")
 
 
 # --------------------------------
@@ -71,7 +71,7 @@ ax.set_zlabel("Elevation (m)")
 ax.set_title("F1 25 Telemetry - 3D Track Position")
 
 plt.savefig(
-    "analysis/track_3d_fast.png",
+    "analysis/track_3d_center_line.png",
     dpi=200,
     bbox_inches="tight"
 )
