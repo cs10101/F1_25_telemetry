@@ -1,0 +1,1 @@
+# this file will be used to record the cars state and enter it into a csv file for analysis later on

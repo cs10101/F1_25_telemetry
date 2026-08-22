@@ -1,6 +1,8 @@
 import socket
 import struct
 
+from telemetry.state import TelemetryState
+
 UDP_IP = "0.0.0.0"
 UDP_PORT = 20777
 
@@ -12,6 +14,9 @@ LAP_DATA_SIZE = 57
 CAR_TELEMETRY_DATA_SIZE = 60
 CAR_STATUS_DATA_SIZE = 55
 
+MOTION_PACKET_ID = 0
+MOTION_DATA_SIZE = 60
+
 # Some telemetry versions use a 24-byte header while others use a 29-byte one.
 # We accept both layouts so the parser remains compatible with common F1 packet formats.
 HEADER_CANDIDATES = (
@@ -22,6 +27,7 @@ HEADER_CANDIDATES = (
 latest_lap = {}
 latest_car = {}
 latest_status = {}
+state = TelemetryState()
 
 
 def format_ms(ms):
@@ -100,14 +106,20 @@ def parse_packet_header(data):
 
         packet_id = data[packet_id_offset]
 
-        if packet_id not in {LAP_DATA_PACKET_ID, CAR_TELEMETRY_PACKET_ID, CAR_STATUS_PACKET_ID}:
+        if packet_id not in {MOTION_PACKET_ID, LAP_DATA_PACKET_ID, CAR_TELEMETRY_PACKET_ID, CAR_STATUS_PACKET_ID}:
             continue
 
         player_car_index = data[player_car_index_offset]
 
-        required_size = header_size + (player_car_index * LAP_DATA_SIZE) + LAP_DATA_SIZE
+        #required_size = header_size + (player_car_index * LAP_DATA_SIZE) + LAP_DATA_SIZE
 
-        if packet_id == LAP_DATA_PACKET_ID:
+        if packet_id == MOTION_PACKET_ID:
+            required_size = (
+                header_size
+                + (player_car_index * MOTION_DATA_SIZE)
+                + MOTION_DATA_SIZE
+            )
+        elif packet_id == LAP_DATA_PACKET_ID:
             required_size = header_size + (player_car_index * LAP_DATA_SIZE) + LAP_DATA_SIZE
         elif packet_id == CAR_TELEMETRY_PACKET_ID:
             required_size = header_size + (player_car_index * CAR_TELEMETRY_DATA_SIZE) + CAR_TELEMETRY_DATA_SIZE
@@ -126,6 +138,19 @@ def update_dashboard_from_packet(data):
         return False
 
     header_size, packet_id, player_car_index = header
+
+    if packet_id == MOTION_PACKET_ID:
+        offset = header_size + (player_car_index * MOTION_DATA_SIZE)
+
+        world_x = struct.unpack_from("<f", data, offset)[0]
+        world_y = struct.unpack_from("<f", data, offset + 4)[0]
+        world_z = struct.unpack_from("<f", data, offset + 8)[0]
+
+        state.world_x = world_x
+        state.world_y = world_y
+        state.world_z = world_z
+
+        return True
 
     if packet_id == LAP_DATA_PACKET_ID:
         offset = header_size + (player_car_index * LAP_DATA_SIZE)
@@ -152,6 +177,13 @@ def update_dashboard_from_packet(data):
             "gap_ahead": format_gap(gap_ahead_min, gap_ahead_ms),
             "gap_leader": format_gap(gap_leader_min, gap_leader_ms),
         })
+
+        state.position = position
+        state.lap = lap
+        state.sector = sector + 1
+        state.current_lap_ms = current_lap_ms
+        state.last_lap_ms = last_lap_ms
+        state.lap_distance = struct.unpack_from("<f", data, offset + 24)[0]
 
         all_cars = []
 
@@ -180,7 +212,7 @@ def update_dashboard_from_packet(data):
 
         behind_display = []
 
-        speed_mps = max(speed / 3.6, 1)
+        speed_mps = max((state.speed or 0) / 3.6, 1)
 
         for car in cars_behind:
             gap_metres = player_total_distance - car["total_distance"]
@@ -216,6 +248,14 @@ def update_dashboard_from_packet(data):
             "steering": format_steering(steering),
         })
 
+        state.speed = speed
+        state.throttle = throttle
+        state.steering = steering
+        state.brake = brake
+        state.gear = gear
+        state.rpm = rpm
+        state.drs = bool(drs)
+
         print_dashboard()
         return True
 
@@ -230,6 +270,9 @@ def update_dashboard_from_packet(data):
             "tyre": tyre_name(visual_tyre),
             "tyre_age": f"{tyre_age} laps",
         })
+
+        state.tyre_compound = tyre_name(visual_tyre)
+        state.tyre_age = tyre_age
 
         print_dashboard()
         return True
@@ -247,6 +290,14 @@ def main():
             while True:
                 data, _ = sock.recvfrom(4096)
                 update_dashboard_from_packet(data)
+
+                if state.world_x is not None:
+                    print(
+                        f"\nMOTION TEST | "
+                        f"X: {state.world_x:.2f} | "
+                        f"Y: {state.world_y:.2f} | "
+                        f"Z: {state.world_z:.2f}"
+                    )
         except KeyboardInterrupt:
             print("\nTelemetry listener stopped.")
 
