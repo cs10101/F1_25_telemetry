@@ -1,3 +1,4 @@
+# imported libraries
 import importlib.util
 from pathlib import Path
 import unittest
@@ -7,7 +8,7 @@ SPEC = importlib.util.spec_from_file_location("live_telemetry", MODULE_PATH)
 live_telemetry = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(live_telemetry)
 
-
+#
 class ParsePacketHeaderTests(unittest.TestCase):
     def _build_packet(self, header_size, packet_id_offset, player_car_index_offset, packet_id, player_car_index):
         data = bytearray(header_size + 256)

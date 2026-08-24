@@ -14,9 +14,10 @@ venv/
 # IDE
 .vscode/
 
-# Recorded telemetry
+# Recorded telemetry and images
 telemetry_sessions/
 *.csv
+*.png
 
 # Logs
 *.log

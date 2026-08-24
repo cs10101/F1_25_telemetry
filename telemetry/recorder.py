@@ -1,11 +1,14 @@
 # this file will be used to record the cars state and enter it into a csv file for analysis later on
 
+# importing libraries
 import csv
 from datetime import datetime
 from pathlib import Path
 
-
+# creating a new class called SessionRecorder to record data which is produced from the F1 25 game during a game session
 class SessionRecorder:
+
+    # create the class???
     def __init__(self, output_dir="data/sessions"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -19,6 +22,7 @@ class SessionRecorder:
         self.initial_lap = None
         self.recording_started = False
 
+    # activate the SessionRecorder class
     def start(self):
         self.file = open(self.file_path, "w", newline="")
 
@@ -47,12 +51,15 @@ class SessionRecorder:
 
         self.writer.writeheader()
 
+        # telling the user where the csv file is being recorded to
         print(f"Recording session to: {self.file_path}")
 
+    # function to actually record the data being produced by the game
     def record(self, state):
         if self.writer is None:
             return
 
+        # im assuming this means if there is no game session going on then dont record anything
         if state.world_x is None or state.lap is None:
             return
 
@@ -75,6 +82,7 @@ class SessionRecorder:
                 f"Start/finish crossed - recording from lap {state.lap}!"
             )
 
+        # this is all the data that the recorder will collect during game session
         self.writer.writerow({
             "timestamp": datetime.now().isoformat(),
             "lap": state.lap,
@@ -93,10 +101,12 @@ class SessionRecorder:
             "tyre_age": state.tyre_age,
         })
 
+    # this function stops the recorder when there is no game session going on
     def stop(self):
         if self.file is not None:
             self.file.close()
             self.file = None
             self.writer = None
 
+            # confirmation message telling user that file saved correctly
             print(f"Session saved to: {self.file_path}")
