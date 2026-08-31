@@ -1,7 +1,5 @@
 # this file will be used to keep track of the cars live state position in the game
-
 from dataclasses import dataclass
-
 
 @dataclass
 class TelemetryState:
@@ -12,6 +10,8 @@ class TelemetryState:
     current_lap_ms: int | None = None
     last_lap_ms: int | None = None
     lap_distance: float | None = None
+    lap_invalid: bool | None = None
+    previous_lap_distance = None
 
     # Car telemetry
     speed: int | None = None

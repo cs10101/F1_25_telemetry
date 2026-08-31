@@ -81,6 +81,9 @@ def print_dashboard():
     print(f"Last Lap:     {latest_lap.get('last_lap', '--')}")
     print(f"Gap Ahead:    {latest_lap.get('gap_ahead', '--')}")
 
+    # if latest_lap is False then the lap is valid, if it is True then the lap is invalid.
+    print(f"Lap Valid:    {'No' if latest_lap.get('lap_invalid', False) else 'Yes'}")
+
     # the for loop is used to iterate through the list of cars behind the player and print their position and gap to the players car.
     # if there are no cars behind the player, it will print "No cars behind"
     print("Behind:")
@@ -175,7 +178,7 @@ def update_dashboard_from_packet(data):
         state.world_z = world_z
 
         # Record one snapshot per Motion packet
-        recorder.record(state)
+        #recorder.record(state)
 
         return True
 
@@ -199,6 +202,7 @@ def update_dashboard_from_packet(data):
         position = data[offset + 32]
         lap = data[offset + 33]
         sector = data[offset + 36]
+        current_lap_invalid = data[offset + 37]
 
         # latest_lap dictionary is updated with the latest lap data being sent by the game.
         # this includes the position of the players car, the current lap time, the last lap time, the gap to the car ahead and the gap to the leader of the race
@@ -210,6 +214,7 @@ def update_dashboard_from_packet(data):
             "last_lap": format_ms(last_lap_ms),
             "gap_ahead": format_gap(gap_ahead_min, gap_ahead_ms),
             "gap_leader": format_gap(gap_leader_min, gap_leader_ms),
+            "lap_invalid": bool(current_lap_invalid)
         })
 
         # the code below is used to update the state object with the latest lap data being sent by the game. 
@@ -219,7 +224,34 @@ def update_dashboard_from_packet(data):
         state.sector = sector + 1
         state.current_lap_ms = current_lap_ms
         state.last_lap_ms = last_lap_ms
-        state.lap_distance = struct.unpack_from("<f", data, offset + 24)[0]
+        state.lap_distance = struct.unpack_from("<f", data, offset + 20)[0]
+        
+    global previous_lap_distance
+
+    if previous_lap_distance is not None:
+        jump = abs(state.lap_distance - previous_lap_distance)
+
+        if jump > 500:
+            print("\n\n===== HUGE LAP DISTANCE JUMP =====")
+            print(f"Lap: {state.lap}")
+            print(f"Previous distance: {previous_lap_distance:.2f}")
+            print(f"New distance: {state.lap_distance:.2f}")
+            print(f"Jump: {jump:.2f} m")
+            print(f"Player car index: {player_car_index}")
+            print(f"Header size: {header_size}")
+            print("==================================\n\n")
+
+        previous_lap_distance = state.lap_distance
+
+        # below is code to print the raw lap data bieng sent by the game to the console. this is for debugging
+        print(
+            f"RAW LAP DATA | "
+            f"lap={lap} | "
+            f"distance={state.lap_distance:.2f} | "
+            f"time={current_lap_ms}"
+        )
+
+        state.lap_invalid = bool(current_lap_invalid)
 
         # the list below is to store the data of the cars behind the players car. this is used to display the gap between the players car and the cars behind them in the dashboard
         all_cars = []
@@ -264,6 +296,7 @@ def update_dashboard_from_packet(data):
 
         latest_lap["behind"] = behind_display
 
+        recorder.record(state) # record the state of the players car after updating the latest lap data
         print_dashboard()
         return True
 
