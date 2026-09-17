@@ -30,6 +30,7 @@ HEADER_CANDIDATES = (
 latest_lap = {}
 latest_car = {}
 latest_status = {}
+previous_lap_distance = None
 state = TelemetryState() # the state of the car being driven by the player
 recorder = SessionRecorder() # 
 
